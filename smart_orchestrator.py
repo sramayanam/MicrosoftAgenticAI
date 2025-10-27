@@ -48,6 +48,7 @@ class SmartOrchestrator:
         self.sql_agent_url = os.getenv("SQL_AGENT_URL", "http://localhost:10008")
         self.databricks_agent_url = os.getenv("DATABRICKS_AGENT_URL", "http://localhost:10010")
         self.python_agent_url = os.getenv("PYTHON_AGENT_URL", "http://localhost:10009")
+        self.bing_agent_url = os.getenv("BING_AGENT_URL", "http://localhost:10011")
 
         # HTTP client for A2A communication
         self.http_client: httpx.AsyncClient | None = None
@@ -56,6 +57,7 @@ class SmartOrchestrator:
         self.sql_agent: A2AAgent | None = None
         self.databricks_agent: A2AAgent | None = None
         self.python_agent: A2AAgent | None = None
+        self.bing_agent: A2AAgent | None = None
 
         # Workflows
         self.chart_workflow = None  # Sequential: SQL → Python
@@ -106,6 +108,12 @@ class SmartOrchestrator:
         self.python_agent = await self._create_a2a_agent(
             name="PythonToolAgent",
             url=self.python_agent_url
+        )
+
+        print("  Connecting to Bing Grounding Agent...")
+        self.bing_agent = await self._create_a2a_agent(
+            name="BingGroundingAgent",
+            url=self.bing_agent_url
         )
 
     async def _create_a2a_agent(self, name: str, url: str) -> A2AAgent:
@@ -186,10 +194,20 @@ class SmartOrchestrator:
         is_sql = any(kw in query_lower for kw in [
             'bridge', 'span', 'beam', '1001', 'structural'
         ])
+        is_costing = any(kw in query_lower for kw in [
+            'cost', 'price', 'pricing', 'market', 'budget', 'vendor',
+            'supplier', 'economic', 'forecast', 'trend', 'inflation'
+        ])
 
         # Determine routing strategy
-        # Check for three-agent workflow first (most complex)
-        if is_visualization and is_databricks and is_sql:
+        # Check for costing queries first (new agent)
+        if is_costing:
+            # Bing Grounding Agent for costing/pricing queries
+            strategy = "direct_bing"
+            workflow = None
+            agents = ["Bing"]
+        # Check for three-agent workflow (most complex)
+        elif is_visualization and is_databricks and is_sql:
             # SQL + Databricks + Python (compare data and visualize)
             strategy = "three_agent_workflow"
             workflow = "comparison_chart"
@@ -226,7 +244,8 @@ class SmartOrchestrator:
             "agents": agents,
             "is_visualization": is_visualization,
             "is_databricks": is_databricks,
-            "is_sql": is_sql
+            "is_sql": is_sql,
+            "is_costing": is_costing
         }
 
     def _preprocess_query(self, query: str, routing_info: dict) -> str:
@@ -298,7 +317,10 @@ class SmartOrchestrator:
 
             try:
                 # Route based on strategy
-                if routing_info["strategy"] == "three_agent_workflow":
+                if routing_info["strategy"] == "direct_bing":
+                    await self._run_direct_agent(self.bing_agent, user_query, result, "bing")
+
+                elif routing_info["strategy"] == "three_agent_workflow":
                     await self._run_three_agent_workflow(processed_query, user_query, result)
 
                 elif routing_info["strategy"] == "sequential_chart":

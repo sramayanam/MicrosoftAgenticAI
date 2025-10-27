@@ -38,6 +38,7 @@ Smart routing with support for all agent combinations:
 - 🔗 **SQL Foundry Agent** - Bridge 1001 structural data queries
 - 💎 **Databricks Agent** - Georgia DOT standards and specifications
 - 🐍 **Python Tool Agent** - Data visualization and chart generation
+- 🔍 **Bing Grounding Agent** - Construction costing and market pricing with real-time search
 - 🎯 **Smart Routing** - Automatic workflow selection based on query analysis
 """)
 
@@ -96,6 +97,20 @@ QUERY_CATEGORIES = {
             "Compliance Visualization": "Visualize Bridge 1001 compliance with GDOT design parameters as a chart",
             "Standards Comparison": "Show Bridge 1001 beam types versus GDOT standard beam types as a comparison chart",
             "Full Comparison Chart": "Compare all Bridge 1001 structural data with GDOT standards and create a visualization",
+        }
+    },
+    "🔍 Costing & Market Pricing (Bing Grounding)": {
+        "icon": "🔍",
+        "description": "Real-time market prices and construction costing information",
+        "queries": {
+            "Steel Prices": "What is the current market price for structural steel in the United States?",
+            "Concrete Costs": "What are typical costs for concrete bridge construction per square foot?",
+            "Rebar Pricing": "What are the latest prices for rebar and reinforcement materials?",
+            "Material Trends": "How do construction material costs compare between 2023 and 2024?",
+            "Prestressed Concrete Costs": "What are the current costs for prestressed concrete beams?",
+            "Labor Cost Trends": "What are labor cost trends in bridge construction for 2024?",
+            "Vendor Information": "Who are the major structural steel suppliers in the United States?",
+            "Compliance Costs": "What are the costs for material testing and certification?",
         }
     }
 }
@@ -197,9 +212,15 @@ def main():
         is_viz = any(kw in query_lower for kw in ['chart', 'graph', 'plot', 'visualiz'])
         is_db = any(kw in query_lower for kw in ['gdot', 'standard', 'material', 'databricks'])
         is_sql = any(kw in query_lower for kw in ['bridge', 'span', 'beam', '1001'])
+        is_costing = any(kw in query_lower for kw in ['cost', 'price', 'pricing', 'market', 'budget', 'vendor', 'supplier', 'economic', 'forecast', 'trend', 'inflation'])
 
+        # Check for costing queries first
+        if is_costing:
+            st.success("**Strategy:** Direct Bing Grounding Agent")
+            st.markdown("**Flow:** Bing Grounding Agent only")
+            st.markdown("**Expected Output:** Real-time market pricing and costing information")
         # Three-agent workflow check (most complex first)
-        if is_viz and is_db and is_sql:
+        elif is_viz and is_db and is_sql:
             st.success("**Strategy:** Three-Agent Workflow")
             st.markdown("**Flow:** (SQL + Databricks in parallel) → Python")
             st.markdown("**Expected Output:** Comparison data + Visualization")
