@@ -1,9 +1,8 @@
-"""Python Tool Agent Executor for A2A framework.
+"""Databricks Agent Executor for A2A framework.
 
-Wraps a Semantic Kernel Python Tool Agent to work with the A2A protocol.
+Wraps a Microsoft Agent Framework Databricks Agent to work with the A2A protocol.
 """
 
-import base64
 import logging
 
 from a2a.server.agent_execution import AgentExecutor
@@ -21,31 +20,31 @@ from a2a.types import (
 )
 from a2a.utils.message import new_agent_text_message
 
-from .python_tool_agent import PythonToolAgent
+from .databricks_agent import DatabricksAgent
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class PythonToolAgentExecutor(AgentExecutor):
-    """An AgentExecutor that runs Semantic Kernel Python Tool agents.
+class DatabricksAgentExecutor(AgentExecutor):
+    """An AgentExecutor that runs Databricks MCP agents.
 
-    Wraps a Python visualization agent to work with the A2A protocol.
+    Wraps a Databricks agent to work with the A2A protocol.
     """
 
     def __init__(self, card: AgentCard) -> None:
         self._card = card
-        self._tool_agent: PythonToolAgent | None = None
+        self._databricks_agent: DatabricksAgent | None = None
         self._active_contexts: set[str] = set()
 
-    async def _get_or_create_agent(self) -> PythonToolAgent:
-        """Get or create the Python Tool Agent."""
-        if not self._tool_agent:
-            from .python_tool_agent import create_python_tool_agent
+    async def _get_or_create_agent(self) -> DatabricksAgent:
+        """Get or create the Databricks Agent."""
+        if not self._databricks_agent:
+            from .databricks_agent import create_databricks_agent
 
-            self._tool_agent = await create_python_tool_agent()
-        return self._tool_agent
+            self._databricks_agent = await create_databricks_agent()
+        return self._databricks_agent
 
     async def _process_request(
         self,
@@ -53,7 +52,7 @@ class PythonToolAgentExecutor(AgentExecutor):
         context_id: str,
         task_updater: TaskUpdater,
     ) -> None:
-        """Process a user request through the Python Tool Agent."""
+        """Process a user request through the Databricks Agent."""
         try:
             # Convert A2A parts to text message
             user_message = self._convert_parts_to_text(message_parts)
@@ -65,7 +64,7 @@ class PythonToolAgentExecutor(AgentExecutor):
             await task_updater.update_status(
                 TaskState.working,
                 message=new_agent_text_message(
-                    'Processing your request...', context_id=context_id
+                    'Querying Databricks...', context_id=context_id
                 ),
             )
 
@@ -81,50 +80,14 @@ class PythonToolAgentExecutor(AgentExecutor):
                     ),
                 )
 
-            # Prepare final message with both text and images
-            final_parts = []
-            
-            # Add text if we have it
-            if response['text']:
-                final_parts.append(Part(root=TextPart(text=response['text'])))
-
-            # Add images to the final message instead of separate working messages
-            if response.get('images'):
-                for idx, image in enumerate(response['images']):
-                    # Create a file part with the image data
-                    image_data = image['data']  # Already base64 string from python_tool_agent.py
-
-                    file_part = FilePart(
-                        file=FileWithBytes(
-                            name=f'visualization_{idx + 1}.png',
-                            mime_type=image.get('mime_type', 'image/png'),
-                            bytes=image_data,  # Keep as base64 string
-                        )
-                    )
-                    final_parts.append(Part(root=file_part))
-
-            # Create the final message with text + images
-            if final_parts:
-                from a2a.types import Message
-                from uuid import uuid4
-                
-                final_message = Message(
-                    role='agent',
-                    parts=final_parts,
-                    context_id=context_id,
-                    message_id=str(uuid4()),
-                )
-            else:
-                # Fallback to text-only
-                final_message = new_agent_text_message(
-                    'Processing completed.', context_id=context_id
-                )
-
-            # Mark as complete with combined message
-            await task_updater.complete(message=final_message)
+            # Mark as complete
+            final_message = response['text'] if response['text'] else 'Query completed.'
+            await task_updater.complete(
+                message=new_agent_text_message(final_message, context_id=context_id)
+            )
 
         except Exception as e:
-            logger.error('Error processing Python Tool request: %s', e, exc_info=True)
+            logger.error('Error processing Databricks request: %s', e, exc_info=True)
             await task_updater.failed(
                 message=new_agent_text_message(
                     f'Error: {str(e)}', context_id=context_id
@@ -157,9 +120,9 @@ class PythonToolAgentExecutor(AgentExecutor):
         context: RequestContext,
         event_queue: EventQueue,
     ) -> None:
-        """Execute the Python Tool agent request."""
+        """Execute the Databricks agent request."""
         logger.info(
-            'Executing Python Tool request for context: %s', context.context_id
+            'Executing Databricks request for context: %s', context.context_id
         )
 
         # Create task updater
@@ -186,7 +149,7 @@ class PythonToolAgentExecutor(AgentExecutor):
         self._active_contexts.discard(context.context_id)
 
         logger.debug(
-            'Python Tool agent execution completed for %s', context.context_id
+            'Databricks agent execution completed for %s', context.context_id
         )
 
     async def cancel(
@@ -194,7 +157,7 @@ class PythonToolAgentExecutor(AgentExecutor):
     ) -> None:
         """Cancel the ongoing execution."""
         logger.info(
-            'Cancelling Python Tool execution for context: %s', context.context_id
+            'Cancelling Databricks execution for context: %s', context.context_id
         )
 
         # Remove from active contexts
@@ -209,15 +172,15 @@ class PythonToolAgentExecutor(AgentExecutor):
 
     async def cleanup(self) -> None:
         """Clean up resources."""
-        if self._tool_agent:
-            await self._tool_agent.cleanup()
-            self._tool_agent = None
+        if self._databricks_agent:
+            await self._databricks_agent.cleanup()
+            self._databricks_agent = None
         self._active_contexts.clear()
-        logger.info('Python Tool agent executor cleaned up')
+        logger.info('Databricks agent executor cleaned up')
 
 
-def create_python_tool_agent_executor(
+def create_databricks_agent_executor(
     card: AgentCard,
-) -> PythonToolAgentExecutor:
-    """Factory function to create a Python Tool agent executor."""
-    return PythonToolAgentExecutor(card)
+) -> DatabricksAgentExecutor:
+    """Factory function to create a Databricks agent executor."""
+    return DatabricksAgentExecutor(card)

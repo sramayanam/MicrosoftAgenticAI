@@ -1,5 +1,7 @@
 import logging
 import os
+import sys
+from pathlib import Path
 
 import click
 import uvicorn
@@ -15,6 +17,9 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
+# Import shared observability configuration
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from observability import configure_observability
 
 load_dotenv()
 
@@ -27,6 +32,14 @@ logger = logging.getLogger(__name__)
 @click.option('--port', 'port', default=10008)
 def main(host: str, port: int) -> None:
     """Run the SQL Foundry A2A Agent server."""
+    # Configure observability for the SQL Foundry Agent
+    configure_observability(
+        service_name="sql-foundry-agent",
+        enable_logging=True,
+        enable_tracing=True,
+        enable_httpx_instrumentation=True,
+    )
+
     # Verify required environment variables
     required_env_vars = [
         'PROJECT_ENDPOINT',

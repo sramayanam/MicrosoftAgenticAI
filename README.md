@@ -9,40 +9,43 @@ A production-ready multi-agent system built with **Microsoft Agent Framework** (
 This system orchestrates multiple AI agents to provide comprehensive bridge engineering solutions:
 
 1. **SQL Foundry Agent** - Natural language to SQL query agent wrapping Azure AI Foundry
-2. **Python Tool Agent** - Visualization and data analysis using Semantic Kernel with Azure Container Apps Dynamic Sessions
-3. **Agent Orchestrator** - Coordinates multi-agent workflows via A2A protocol
-4. **Streamlit UI** - Web interface for interactive agent orchestration
+2. **Databricks Agent** - Queries Georgia DOT standards via MCP Server in Azure APIM
+3. **Python Tool Agent** - Visualization and data analysis using Semantic Kernel with Azure Container Apps Dynamic Sessions
+4. **Smart Orchestrator** - Intelligent workflow orchestration using Sequential + Concurrent patterns
+5. **Streamlit UI** - Web interface for interactive multi-agent workflows
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Streamlit Web UI                           │
-│                   (streamlit_app.py)                            │
+│                    Streamlit Web UI v1                          │
+│                  (streamlit_app_v1.py)                          │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
                        ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│              Agent Orchestrator (A2A Client)                    │
-│              (agent_orchestrator_a2a.py)                        │
-└──────┬────────────────────────────────────────────┬─────────────┘
-       │                                            │
-       ↓                                            ↓
-┌──────────────────────┐              ┌──────────────────────────┐
-│  SQL Foundry Agent   │              │  Python Tool Agent       │
-│  (Port 10008)        │              │  (Port 10009)            │
-│                      │              │                          │
-│  • Natural Language  │              │  • Matplotlib/Pandas     │
-│    to SQL            │              │  • Chart Generation      │
-│  • Azure AI Foundry  │              │  • Semantic Kernel       │
-│  • Database Queries  │              │  • Code Execution        │
-└──────┬───────────────┘              └──────┬───────────────────┘
-       │                                     │
-       ↓                                     ↓
-┌──────────────────────┐              ┌──────────────────────────┐
-│ Azure AI Foundry     │              │ Azure Container Apps     │
-│ NL2SQL Agent         │              │ Dynamic Sessions         │
-└──────────────────────┘              └──────────────────────────┘
+│              Smart Orchestrator (smart_orchestrator.py)         │
+│  • Sequential Workflow: SQL → Python (for charts)               │
+│  • Concurrent Workflow: SQL + Databricks (parallel data)        │
+│  • Direct A2A: Single agent queries                             │
+└──┬───────────────────┬──────────────────────┬───────────────────┘
+   │                   │                      │
+   ↓                   ↓                      ↓
+┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐
+│ SQL Foundry  │  │ Databricks   │  │ Python Tool Agent    │
+│ Agent        │  │ Agent        │  │ (Port 10009)         │
+│ (Port 10008) │  │ (Port 10010) │  │                      │
+│              │  │              │  │ • Matplotlib/Pandas  │
+│ • NL to SQL  │  │ • GDOT       │  │ • Chart Generation   │
+│ • Azure AI   │  │   Standards  │  │ • Semantic Kernel    │
+│   Foundry    │  │ • MCP Server │  │ • Code Execution     │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────────────┘
+       │                 │                 │
+       ↓                 ↓                 ↓
+┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐
+│ Azure AI     │  │ Azure APIM   │  │ Azure Container Apps │
+│ Foundry      │  │ → Databricks │  │ Dynamic Sessions     │
+└──────────────┘  └──────────────┘  └──────────────────────┘
 ```
 
 ## ✨ Features
@@ -132,16 +135,19 @@ uv run python -m sql_foundry_agent --host localhost --port 10008
 **Terminal 2 - Python Tool Agent:**
 ```bash
 uv run python -m python_tool_agent --host localhost --port 10009
+uv run python -m databricks_agent --host 0.0.0.0 --port 10010  
 ```
 
 ### 4. Launch the Web UI
 
-**Terminal 3 - Streamlit App:**
+**Terminal 4 - Streamlit App (v1 with Sequential + Concurrent Workflows):**
 ```bash
-uv run streamlit run streamlit_app.py
+uv run streamlit run streamlit_app_v1.py
 ```
 
 Open your browser to `http://localhost:8501`
+
+**Note:** Use `streamlit_app_v1.py` which uses the new SmartOrchestrator with Sequential + Concurrent workflows. The old `streamlit_app.py` uses Magentic which has issues with A2A file attachments.
 
 ## 💻 Usage Examples
 
@@ -323,7 +329,161 @@ See [LICENSE](LICENSE) file.
 
 ---
 
+## 📋 Implementation Summary
+
+**Date:** 2025-10-26
+
+### Recent Enhancements
+
+#### Task 1: Enhanced Observability for Distributed Tracing
+
+**Changes Made:**
+
+- Enhanced [observability.py](observability.py) with explicit trace context management functions
+- Added W3C trace context propagation support for distributed tracing
+- Updated documentation with best practices for trace correlation
+
+**New Functions:**
+
+- `get_trace_context_headers()`: Returns W3C trace context headers for current span
+- `inject_trace_context(headers)`: Injects current trace context into HTTP headers
+- `extract_trace_context(headers)`: Extracts trace context from incoming headers
+
+#### Task 2: Databricks Agent Integration
+
+**New Components:**
+
+- Complete databricks_agent package with A2A protocol support
+- MCP tool integration for Unity Catalog access
+- JWT authentication for Azure API Management
+- Comprehensive observability integration
+
+**Multi-Agent System Architecture:**
+
+```text
+Frontend (Streamlit) → Orchestrator → SQL Foundry Agent
+                                   → Python Tool Agent  
+                                   → Databricks Agent (NEW)
+```
+
+### Future Orchestrator Improvements
+
+Our current orchestrator is a simple coordination system. For production use, consider:
+
+1. **LLM-based Orchestration**: Use an LLM to dynamically plan agent workflows
+2. **Microsoft Agent Framework Workflows**:
+   - [Magentic Orchestration](https://github.com/microsoft/agent-framework/blob/main/python/samples/getting_started/workflows/orchestration/magentic.py)
+   - [Group Chat with Simple Selector](https://github.com/microsoft/agent-framework/blob/main/python/samples/getting_started/workflows/orchestration/group_chat_simple_selector.py)
+   - [Group Chat with Prompt-based Manager](https://github.com/microsoft/agent-framework/blob/main/python/samples/getting_started/workflows/orchestration/group_chat_prompt_based_manager.py)
+
+**Key Considerations:**
+
+- A2A is a communication protocol; orchestration is higher-level workflow planning
+- Migrate from OpenAI to Azure OpenAI for all components
+- Leverage built-in [observability features](https://github.com/microsoft/agent-framework/blob/main/python/samples/getting_started/observability/workflow_observability.py)
+
+---
+
+## 🔍 Observability & Distributed Tracing
+
+### Overview
+
+The system includes comprehensive end-to-end distributed tracing across all components using Azure Application Insights and OpenTelemetry:
+
+- **Streamlit Frontend** - User interface tracing
+- **Agent Orchestrator** - Multi-agent coordination
+- **SQL Foundry Agent** - Azure AI Foundry integration
+- **Python Tool Agent** - Semantic Kernel visualization
+- **Databricks Agent** - Unity Catalog queries
+
+### Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                  Azure Application Insights                  │
+│           (Unified Telemetry & Trace Correlation)            │
+└─────────────────────────────────────────────────────────────┘
+                            ▲
+                            │ (All traces sent here)
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+   ┌────┴────┐         ┌────┴────┐        ┌────┴────┐
+   │Frontend │         │Orchestr.│        │ Agents  │
+   │Streamlit│────────▶│  A2A    │───────▶│ 3 Types │
+   └─────────┘         └─────────┘        └─────────┘
+```
+
+### Service Names in Application Insights
+
+- `streamlit-frontend`
+- `agent-orchestrator`  
+- `sql-foundry-agent`
+- `python-tool-agent`
+- `databricks-agent`
+
+### Configuration
+
+Add to your `.env` file:
+
+```bash
+APPLICATIONINSIGHTS_CONNECTION_STRING="InstrumentationKey=xxxxx;IngestionEndpoint=https://region.in.applicationinsights.azure.com/;..."
+```
+
+### Trace Context Propagation
+
+**Automatic (HTTPX):**
+
+```python
+# Trace context automatically propagated in A2A calls
+async with httpx.AsyncClient() as client:
+    response = await client.post(agent_url, json=payload)
+```
+
+**Manual (Custom HTTP clients):**
+
+```python
+from observability import inject_trace_context
+
+headers = {"Authorization": "Bearer token"}
+inject_trace_context(headers)  # Adds traceparent/tracestate
+requests.post(url, headers=headers, json=payload)
+```
+
+### Viewing Traces
+
+Navigate to **Azure Portal** → **Application Insights** → **Transaction search**
+
+Use trace IDs to correlate complete request flows across all agents.
+
+### Key Kusto Queries
+
+```kusto
+// Find distributed traces for a complete request
+dependencies
+| where operation_Id == "your-trace-id"
+| union traces | union requests
+| project timestamp, itemType, name, duration
+| order by timestamp asc
+
+// Analyze multi-agent orchestration performance
+requests
+| where cloud_RoleName == "agent-orchestrator"
+| summarize avg(duration), percentile(duration, 95) by name
+
+// View agent-to-agent communication
+dependencies
+| where target contains "agent"
+| project timestamp, cloud_RoleName, target, duration, success
+| order by timestamp desc
+```
+
+For complete observability setup instructions, see the [detailed observability documentation](OBSERVABILITY.md).
+
+---
+
 **Built with:**
+
 - Microsoft Agent Framework (Preview)
 - A2A Protocol
 - Azure AI Foundry

@@ -110,3 +110,16 @@ Thumbs.db
 *copy.txt
 *backup*
 *~
+
+# Old/experimental files not needed for production
+streamlit_app.py
+streamlit_app_direct.py
+streamlit_app_smart_simple.py
+native_workflow_orchestrator.py
+smart_orchestrator_v2.py
+agent_orchestrator_a2a.py
+chart_renderer.py
+
+# Documentation files - ignore all markdown for now
+*.md
+!README.md
