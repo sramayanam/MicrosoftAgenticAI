@@ -11,8 +11,9 @@ This system orchestrates multiple AI agents to provide comprehensive bridge engi
 1. **SQL Foundry Agent** - Natural language to SQL query agent wrapping Azure AI Foundry
 2. **Databricks Agent** - Queries Georgia DOT standards via MCP Server in Azure APIM
 3. **Python Tool Agent** - Visualization and data analysis using Semantic Kernel with Azure Container Apps Dynamic Sessions
-4. **Smart Orchestrator** - Intelligent workflow orchestration using Sequential + Concurrent patterns
-5. **Streamlit UI** - Web interface for interactive multi-agent workflows
+4. **Bing Grounding Agent** - Construction costing and market pricing with real-time Bing search grounding
+5. **Smart Orchestrator** - Intelligent workflow orchestration using Sequential + Concurrent patterns
+6. **Streamlit UI** - Web interface for interactive multi-agent workflows
 
 ## 🏗️ Architecture
 
@@ -27,54 +28,82 @@ This system orchestrates multiple AI agents to provide comprehensive bridge engi
 │              Smart Orchestrator (smart_orchestrator.py)         │
 │  • Sequential Workflow: SQL → Python (for charts)               │
 │  • Concurrent Workflow: SQL + Databricks (parallel data)        │
-│  • Direct A2A: Single agent queries                             │
-└──┬───────────────────┬──────────────────────┬───────────────────┘
-   │                   │                      │
-   ↓                   ↓                      ↓
-┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐
-│ SQL Foundry  │  │ Databricks   │  │ Python Tool Agent    │
-│ Agent        │  │ Agent        │  │ (Port 10009)         │
-│ (Port 10008) │  │ (Port 10010) │  │                      │
-│              │  │              │  │ • Matplotlib/Pandas  │
-│ • NL to SQL  │  │ • GDOT       │  │ • Chart Generation   │
-│ • Azure AI   │  │   Standards  │  │ • Semantic Kernel    │
-│   Foundry    │  │ • MCP Server │  │ • Code Execution     │
-└──────┬───────┘  └──────┬───────┘  └──────┬───────────────┘
-       │                 │                 │
-       ↓                 ↓                 ↓
-┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐
-│ Azure AI     │  │ Azure APIM   │  │ Azure Container Apps │
-│ Foundry      │  │ → Databricks │  │ Dynamic Sessions     │
-└──────────────┘  └──────────────┘  └──────────────────────┘
+│  • Direct A2A: Single agent queries (SQL/Databricks/Bing)       │
+│  • Intelligent routing based on query keywords                  │
+└──┬───────────────┬──────────────────┬──────────────┬───────────┘
+   │               │                  │              │
+   ↓               ↓                  ↓              ↓
+┌─────────┐  ┌─────────┐  ┌─────────────────┐  ┌─────────────┐
+│SQL      │  │Databricks│  │Python Tool      │  │Bing         │
+│Foundry  │  │Agent    │  │Agent            │  │Grounding    │
+│Agent    │  │(10010)  │  │(10009)          │  │Agent        │
+│(10008)  │  │         │  │                 │  │(10011)      │
+│         │  │• GDOT   │  │• Matplotlib     │  │             │
+│• NL→SQL │  │  Stds   │  │• Pandas         │  │• Market     │
+│• Azure  │  │• MCP    │  │• Chart Gen      │  │  Pricing    │
+│  AI     │  │  Server │  │• Semantic       │  │• Bing       │
+│  Foundry│  │         │  │  Kernel         │  │  Search     │
+└────┬────┘  └────┬────┘  └────┬────────────┘  └────┬────────┘
+     │            │             │                    │
+     ↓            ↓             ↓                    ↓
+┌─────────┐  ┌─────────┐  ┌──────────────┐  ┌──────────────┐
+│Azure AI │  │Azure    │  │Azure         │  │Azure AI      │
+│Foundry  │  │APIM →   │  │Container Apps│  │Foundry +     │
+│         │  │Databricks│  │Sessions      │  │Bing Grounding│
+└─────────┘  └─────────┘  └──────────────┘  └──────────────┘
 ```
 
 ## ✨ Features
 
 ### SQL Foundry Agent
+
 - Natural language to SQL conversion for bridge engineering databases
 - Integration with Azure AI Foundry and Microsoft Fabric Data Agent
 - Supports complex queries: beams, girders, bents, decks, materials, compliance
 - GDOT standards integration
 - Real-time streaming responses via A2A protocol
 
+### Databricks Agent
+
+- Query Georgia DOT standards and specifications
+- Unity Catalog integration via MCP Server
+- JWT authentication through Azure API Management
+- Material standards, beam types, design parameters, environmental factors
+- Secure access to bridge engineering reference data
+
 ### Python Tool Agent
+
 - Create visualizations (bar charts, line graphs, pie charts, heatmaps)
 - Execute Python code in secure Azure Container Apps Dynamic Sessions
 - Uses Semantic Kernel with SessionsPythonTool
 - Support for matplotlib, pandas, numpy, seaborn
 - Returns base64-encoded images via A2A protocol
 
-### Multi-Agent Orchestration
-- Seamless coordination between SQL and visualization agents
+### Bing Grounding Agent (NEW)
+
+- Real-time market pricing and construction costing information
+- Bing search grounding for up-to-date data
+- Material prices (steel, concrete, rebar, prestressed components)
+- Cost analysis and trend forecasting
+- Vendor/supplier information
+- Regulatory compliance costs
+
+### Smart Multi-Agent Orchestration
+
+- Intelligent query routing based on keywords and intent
+- Sequential workflows: SQL → Python (for visualizations)
+- Concurrent workflows: SQL + Databricks (parallel data gathering)
+- Direct agent access for specialized queries
 - A2A protocol for standardized agent communication
-- Automatic data flow from SQL results to visualizations
 - Error handling and retry logic
 
 ### Web Interface
-- Interactive Streamlit UI
+
+- Interactive Streamlit UI with 6 query categories
 - Real-time agent status updates
 - Image display for visualizations
-- Configurable agent endpoints and timeouts
+- Automatic routing preview
+- 30+ predefined queries across all agent capabilities
 
 ## 📋 Prerequisites
 
@@ -101,27 +130,38 @@ uv sync
 Create/update `.env` file in the project root:
 
 ```bash
-# Azure AI Foundry (for SQL Agent)
+# Azure AI Foundry (for SQL Agent & Bing Grounding Agent)
 PROJECT_ENDPOINT="https://your-foundry.services.ai.azure.com/api/projects/your-project"
 AZURE_AI_FOUNDRY_AGENT_ID="asst_xxxxxxxxxxxxx"
-MODEL_DEPLOYMENT_NAME="gpt-4.1"
+BING_GROUNDING_AGENT_ID="asst_QZZuly3q633MzDQyWUphMfgw"
+MODEL_DEPLOYMENT_NAME="gpt-4o"
 
 # Azure OpenAI (for Python Tool Agent - Semantic Kernel)
 AZURE_OPENAI_ENDPOINT="https://your-openai.openai.azure.com/"
 AZURE_OPENAI_API_KEY="your-api-key"
-AZURE_OPENAI_CHAT_DEPLOYMENT_NAME="gpt-4"
+AZURE_OPENAI_CHAT_DEPLOYMENT_NAME="gpt-4o"
 
 # Azure Container Apps Dynamic Sessions (for Python Tool Agent)
 AZURE_CONTAINER_APP_SESSION_POOL_ENDPOINT="https://eastus2.dynamicsessions.io/subscriptions/xxx/resourceGroups/xxx/sessionPools/xxx"
 
-# Azure Service Principal (Optional - for session pool file downloads)
-AZURE_TENANT_ID="your-tenant-id"
-AZURE_CLIENT_ID="your-client-id"
-AZURE_CLIENT_SECRET="your-client-secret"
+# Databricks Agent (via MCP Server through APIM)
+DATABRICKS_MCP_SERVER_URL="https://apim-xxxxx.azure-api.net/databricksmcp"
+DATABRICKS_BACKEND_APP_ID="your-backend-app-id"
+DATABRICKS_AGENT_CLIENT_ID="your-agent-client-id"
+DATABRICKS_AGENT_CLIENT_SECRET="your-agent-client-secret"
+DATABRICKS_TENANT_ID="your-tenant-id"
+
+# Azure Application Insights (for Distributed Tracing)
+APPLICATIONINSIGHTS_CONNECTION_STRING="InstrumentationKey=xxx;IngestionEndpoint=https://..."
+
+# A2A Agent URLs
+SQL_AGENT_URL="http://localhost:10008"
+DATABRICKS_AGENT_URL="http://localhost:10010"
+PYTHON_AGENT_URL="http://localhost:10009"
+BING_AGENT_URL="http://localhost:10011"
 
 # Server Configuration
 A2A_HOST=localhost
-A2A_PORT=10008
 LOG_LEVEL=INFO
 ```
 
@@ -135,12 +175,21 @@ uv run python -m sql_foundry_agent --host localhost --port 10008
 **Terminal 2 - Python Tool Agent:**
 ```bash
 uv run python -m python_tool_agent --host localhost --port 10009
-uv run python -m databricks_agent --host 0.0.0.0 --port 10010  
+```
+
+**Terminal 3 - Databricks Agent:**
+```bash
+uv run python -m databricks_agent --host localhost --port 10010
+```
+
+**Terminal 4 - Bing Grounding Agent:**
+```bash
+uv run python -m bing_grounding_agent --host localhost --port 10011
 ```
 
 ### 4. Launch the Web UI
 
-**Terminal 4 - Streamlit App (v1 with Sequential + Concurrent Workflows):**
+**Terminal 5 - Streamlit App (v1 with Sequential + Concurrent Workflows):**
 ```bash
 uv run streamlit run streamlit_app_v1.py
 ```
@@ -183,27 +232,41 @@ uv run python agent_orchestrator_a2a.py
 
 ```
 MicrosoftAgenticAI/
-├── .env                           # Environment configuration
-├── pyproject.toml                 # Project dependencies
-├── README.md                      # This file
-├── streamlit_app.py              # Web UI application
-├── agent_orchestrator_a2a.py     # Multi-agent orchestrator
+├── .env                              # Environment configuration
+├── .env.sample                       # Environment template
+├── pyproject.toml                    # Project dependencies
+├── README.md                         # This file
+├── observability.py                  # Shared observability config
+├── smart_orchestrator.py             # Smart orchestrator with workflows
+├── streamlit_app_v1.py               # Web UI (Sequential + Concurrent)
 │
-├── sql_foundry_agent/            # SQL Agent package
+├── sql_foundry_agent/                # SQL Agent package
 │   ├── __init__.py
-│   ├── __main__.py               # Server entry point
-│   ├── sql_foundry_agent.py      # Core agent logic
-│   ├── sql_foundry_agent_executor.py  # A2A executor
-│   ├── test_client.py            # Test client
-│   └── pyproject.toml            # Agent-specific config
+│   ├── __main__.py                   # A2A server entry point
+│   ├── sql_foundry_agent.py          # Core agent logic
+│   ├── sql_foundry_agent_executor.py # A2A executor
+│   └── README.md                     # SQL agent docs
 │
-└── python_tool_agent/            # Python Tool Agent package
+├── databricks_agent/                 # Databricks Agent package
+│   ├── __init__.py
+│   ├── __main__.py                   # A2A server entry point
+│   ├── databricks_agent.py           # Core agent logic
+│   ├── databricks_agent_executor.py  # A2A executor
+│   └── README.md                     # Databricks agent docs
+│
+├── python_tool_agent/                # Python Tool Agent package
+│   ├── __init__.py
+│   ├── __main__.py                   # A2A server entry point
+│   ├── python_tool_agent.py          # Semantic Kernel agent
+│   ├── python_tool_agent_executor.py # A2A executor
+│   └── README.md                     # Python agent docs
+│
+└── bing_grounding_agent/             # Bing Grounding Agent package
     ├── __init__.py
-    ├── __main__.py               # Server entry point
-    ├── python_tool_agent.py      # Semantic Kernel agent
-    ├── python_tool_agent_executor.py  # A2A executor
-    ├── test_client.py            # Test client
-    └── pyproject.toml            # Agent-specific config
+    ├── __main__.py                   # A2A server entry point
+    ├── bing_grounding_agent.py       # Core agent logic
+    ├── bing_grounding_agent_executor.py # A2A executor
+    └── README.md                     # Bing agent docs
 ```
 
 ## 🔧 Configuration
@@ -211,6 +274,7 @@ MicrosoftAgenticAI/
 ### SQL Foundry Agent (Port 10008)
 
 **Skills:**
+
 - Bridge Beam Analysis
 - Structural Components Analysis
 - Design Standards Compliance
@@ -218,23 +282,59 @@ MicrosoftAgenticAI/
 - Environmental Factors
 
 **Environment Variables:**
+
 - `PROJECT_ENDPOINT` - Azure AI Foundry project endpoint
 - `AZURE_AI_FOUNDRY_AGENT_ID` - Existing SQL agent ID
 - `MODEL_DEPLOYMENT_NAME` - Azure OpenAI deployment
 
+### Databricks Agent (Port 10010)
+
+**Skills:**
+
+- GDOT Material Standards
+- Standard Beam Types
+- Design Parameters
+- Environmental Factors
+- Code Compliance Checklists
+
+**Environment Variables:**
+
+- `DATABRICKS_MCP_SERVER_URL` - APIM endpoint for MCP server
+- `DATABRICKS_BACKEND_APP_ID` - Backend API app ID
+- `DATABRICKS_AGENT_CLIENT_ID` - Service principal client ID
+- `DATABRICKS_AGENT_CLIENT_SECRET` - Service principal secret
+- `DATABRICKS_TENANT_ID` - Azure tenant ID
+
 ### Python Tool Agent (Port 10009)
 
 **Skills:**
+
 - Data Visualization (charts, graphs, plots)
 - Data Analysis and Transformation
 - Python Code Generation
 - Advanced Visualizations (subplots, dashboards)
 
 **Environment Variables:**
+
 - `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint
 - `AZURE_OPENAI_API_KEY` - API key
 - `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME` - Deployment name
 - `AZURE_CONTAINER_APP_SESSION_POOL_ENDPOINT` - Session pool endpoint
+
+### Bing Grounding Agent (Port 10011)
+
+**Skills:**
+
+- Construction Material Pricing
+- Construction Cost Analysis
+- Market Trends & Forecasting
+- Vendor & Supplier Information
+- Regulatory Compliance Costs
+
+**Environment Variables:**
+
+- `PROJECT_ENDPOINT` - Azure AI Foundry project endpoint (shared with SQL agent)
+- `BING_GROUNDING_AGENT_ID` - Existing Bing agent ID (`asst_QZZuly3q633MzDQyWUphMfgw`)
 
 ## 🔍 Health Checks
 
@@ -242,8 +342,14 @@ MicrosoftAgenticAI/
 # SQL Agent
 curl http://localhost:10008/health
 
+# Databricks Agent
+curl http://localhost:10010/health
+
 # Python Tool Agent
 curl http://localhost:10009/health
+
+# Bing Grounding Agent
+curl http://localhost:10011/health
 ```
 
 ## 🐛 Troubleshooting
@@ -358,12 +464,30 @@ See [LICENSE](LICENSE) file.
 - JWT authentication for Azure API Management
 - Comprehensive observability integration
 
+#### Task 3: Bing Grounding Agent Integration
+
+**New Components:**
+
+- Complete [bing_grounding_agent](bing_grounding_agent/) package with A2A protocol support
+- Bing search grounding for real-time market data
+- Construction costing and pricing capabilities
+- 5 specialized skills covering material pricing, cost analysis, market trends, vendor info, and compliance
+- Built-in observability following Microsoft Agent Framework patterns
+- Integration with Smart Orchestrator for automatic routing based on cost/price keywords
+
+**Query Examples:**
+
+- "What is the current market price for structural steel in the United States?"
+- "How do construction material costs compare between 2023 and 2024?"
+- "Who are the major structural steel suppliers in the United States?"
+
 **Multi-Agent System Architecture:**
 
 ```text
 Frontend (Streamlit) → Orchestrator → SQL Foundry Agent
-                                   → Python Tool Agent  
-                                   → Databricks Agent (NEW)
+                                   → Python Tool Agent
+                                   → Databricks Agent
+                                   → Bing Grounding Agent (NEW)
 ```
 
 ### Future Orchestrator Improvements
@@ -391,10 +515,11 @@ Our current orchestrator is a simple coordination system. For production use, co
 The system includes comprehensive end-to-end distributed tracing across all components using Azure Application Insights and OpenTelemetry:
 
 - **Streamlit Frontend** - User interface tracing
-- **Agent Orchestrator** - Multi-agent coordination
+- **Smart Orchestrator** - Multi-agent coordination
 - **SQL Foundry Agent** - Azure AI Foundry integration
-- **Python Tool Agent** - Semantic Kernel visualization
 - **Databricks Agent** - Unity Catalog queries
+- **Python Tool Agent** - Semantic Kernel visualization
+- **Bing Grounding Agent** - Real-time market pricing
 
 ### Architecture
 
@@ -410,17 +535,18 @@ The system includes comprehensive end-to-end distributed tracing across all comp
         │                   │                   │
    ┌────┴────┐         ┌────┴────┐        ┌────┴────┐
    │Frontend │         │Orchestr.│        │ Agents  │
-   │Streamlit│────────▶│  A2A    │───────▶│ 3 Types │
+   │Streamlit│────────▶│  A2A    │───────▶│ 4 Types │
    └─────────┘         └─────────┘        └─────────┘
 ```
 
 ### Service Names in Application Insights
 
 - `streamlit-frontend`
-- `agent-orchestrator`  
+- `smart-orchestrator`
 - `sql-foundry-agent`
-- `python-tool-agent`
 - `databricks-agent`
+- `python-tool-agent`
+- `bing-grounding-agent`
 
 ### Configuration
 
