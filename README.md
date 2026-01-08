@@ -2,7 +2,8 @@
 
 A production-ready multi-agent system built with **Microsoft Agent Framework** (preview) and **A2A Protocol** for bridge engineering data analysis and visualization.
 
-![Multi-Agent Architecture](MicrosoftAgenticPlatform.png)
+<img width="1137" height="802" alt="Screenshot 2026-01-08 at 8 31 15 AM" src="https://github.com/user-attachments/assets/aa094457-ead2-4b0a-8f10-53b72ec0624c" />
+
 
 ## 🌟 Overview
 
